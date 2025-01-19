@@ -8,8 +8,8 @@
 
 #define uchar unsigned char
 
-void encrypt(char *key, char *pt);
-void decrypt(char *key, char *ct);
+char *encrypt(char *key, char *pt);
+char *decrypt(char *key, char *ct);
 
 #ifdef __RC4_IMPLEMENTATION__
 
@@ -27,7 +27,7 @@ void swap(uchar *a, uchar *b) {
 }
 
 void ksa(char *key, uchar *s) {
-  uchar  j = 0;
+  uchar j = 0;
   size_t i = 0, n = strlen(key);
 
   for (i = 0; i < 256; i++) s[i] = (uchar)i;
@@ -38,10 +38,10 @@ void ksa(char *key, uchar *s) {
   }
 }
 
-void prga(char *s, char *input, uchar *output) {
+void prga(uchar *s, uchar *input, uchar *output) {
   uchar i = 0, j = 0;
 
-  for (size_t k = 0, n = strlen(input); k < n; k++) {
+  for (size_t k = 0, n = strlen((char *)input); k < n; k++) {
     i = (i + 1) % 256;
     j = (j + s[i]) % 256;
     swap(s + i, s + j);
@@ -52,37 +52,48 @@ void prga(char *s, char *input, uchar *output) {
 
 uchar *rc4(char *key, uchar *input) {
   uchar s[256];
-  uchar *output = allocate(strlen(input));
+  size_t n = strlen((char *)input);
+  uchar *output = allocate(n);
 
   ksa(key, s);
   prga(s, input, output);
   return output;
 }
 
-void encrypt(char *key, char *input) {
-  uchar *output = rc4(key, (uchar *)input);
+char *toHex(uchar *bytes) {
+  size_t n = strlen((char *)bytes);
+  char *hex = (char *)allocate(2 * n);
 
-  for (size_t i = 0; i < strlen(output); i++) {
-    printf("%02hhX", output[i]);
+  for (size_t i = 0; i < n; i++) {
+    sprintf(&hex[i * 2], "%02hhX", bytes[i]);
   }
 
-  printf("\n");
-  free(output);
+  return hex;
 }
 
-void decrypt(char *key, char *input) {
-  size_t n = strlen(input);
-  uchar *bytes = allocate(n);
+uchar *toBytes(char *hex) {
+  size_t n = strlen(hex);
+  uchar *bytes = allocate(n / 2);
 
   for (size_t i = 0; i < n; i += 2) {
-    sscanf(input + i, "%2hhX", &bytes[i / 2]);
+    sscanf(&hex[i], "%02hhX", &bytes[i / 2]);
   }
 
-  uchar *output = rc4(key, bytes);
+  return bytes;
+}
 
-  printf("%s\n", output);
+char *encrypt(char *key, char *input) {
+  uchar *bytes = rc4(key, (uchar *)input);
+  char *hex = toHex(bytes);
   free(bytes);
-  free(output);
+  return hex;
+}
+
+char *decrypt(char *key, char *input) {
+  uchar *bytes = toBytes(input);
+  uchar *output = rc4(key, bytes);
+  free(bytes);
+  return (char *)output;
 }
 
 #endif // implementation

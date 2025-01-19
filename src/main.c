@@ -47,9 +47,12 @@ Config config(int n, char **args) {
 int main(int argc, char **argv) {
   Config cfg = config(argc, argv);
 
-  cfg.mode == ENC
+  char *output = cfg.mode == ENC
     ? encrypt(cfg.key, cfg.input)
     : decrypt(cfg.key, cfg.input);
 
+  printf("%s\n", output);
+
+  free(output);
   return 0;
 }
